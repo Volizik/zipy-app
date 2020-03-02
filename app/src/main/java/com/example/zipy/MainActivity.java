@@ -6,8 +6,10 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
@@ -39,8 +41,10 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken("838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
                 .requestEmail()
                 .build();
+
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         if (isOnline(getApplicationContext())) {
@@ -58,6 +62,7 @@ public class MainActivity extends Activity {
             webSettings.setDomStorageEnabled(true);
             webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
 
+            webView.addJavascriptInterface(new JavaScriptInterface(this), "android");
             webView.loadUrl("https://zipy.co.il/");
             webView.setWebViewClient(new CustomWebViewClient());
         } else {
@@ -76,17 +81,17 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState ) {
-        super.onSaveInstanceState(outState);
-        webView.saveState(outState);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        webView.restoreState(savedInstanceState);
-    }
+//    @Override
+//    protected void onSaveInstanceState(Bundle outState ) {
+//        super.onSaveInstanceState(outState);
+//        webView.saveState(outState);
+//    }
+//
+//    @Override
+//    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+//        super.onRestoreInstanceState(savedInstanceState);
+//        webView.restoreState(savedInstanceState);
+//    }
 
     public boolean isOnline(Context context) {
         ConnectivityManager conMgr = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -104,10 +109,14 @@ public class MainActivity extends Activity {
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             if (isOnline(getApplicationContext())) {
                 view.loadUrl(url);
-                if (url.startsWith("mailto:") || url.startsWith("tg:")) {
+                if (url.startsWith("mailto:")) {
                     Intent share = new Intent(Intent.ACTION_SEND);
                     share.setType("text/plain");
                     startActivity(Intent.createChooser(share, "Select application"));
+                    return true;
+                }
+                if (url.startsWith("https://t.me")) {
+                    intentMessageTelegram();
                     return true;
                 }
                 return false;
@@ -159,11 +168,12 @@ public class MainActivity extends Activity {
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-
+            String token = account.getIdToken();
             // Signed in successfully, show authenticated UI.
             // Call Js auth method
-            
-            Toast.makeText(getApplicationContext(), "Authentication success!", Toast.LENGTH_LONG).show();
+            String jsAuth = "javascript:googleAuthByToken(" + "'" + token + "'" + ")";
+            webView.loadUrl(jsAuth);
+//            Toast.makeText(getApplicationContext(), token, Toast.LENGTH_LONG).show();
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
@@ -186,6 +196,49 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void googleAuth() {
             signIn();
+        }
+
+        @JavascriptInterface
+        public void debug(String data) {
+//            Toast.makeText(getApplicationContext(), data.toString(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    void intentMessageTelegram()
+    {
+        final String appName = "org.telegram.messenger";
+        final boolean isAppInstalled = isAppAvailable(getApplicationContext(), appName);
+        if (isAppInstalled) {
+            Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=zipyofficial"));
+            startActivity(myIntent);
+        }
+        else {
+            Toast.makeText(this, "Telegram not Installed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Indicates whether the specified app ins installed and can used as an intent. This
+     * method checks the package manager for installed packages that can
+     * respond to an intent with the specified app. If no suitable package is
+     * found, this method returns false.
+     *
+     * @param context The application's environment.
+     * @param appName The name of the package you want to check
+     *
+     * @return True if app is installed
+     */
+    public static boolean isAppAvailable(Context context, String appName)
+    {
+        PackageManager pm = context.getPackageManager();
+        try
+        {
+            pm.getPackageInfo(appName, PackageManager.GET_ACTIVITIES);
+            return true;
+        }
+        catch (PackageManager.NameNotFoundException e)
+        {
+            return false;
         }
     }
 }
