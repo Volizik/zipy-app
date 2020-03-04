@@ -25,7 +25,19 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.Task;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.FormEncodingBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 
 public class MainActivity extends Activity {
 
@@ -33,15 +45,20 @@ public class MainActivity extends Activity {
     private static final String TAG = "MyActivity";
     GoogleSignInClient mGoogleSignInClient;
     int RC_SIGN_IN = 0;
+    private String mAccessToken;
+    Activity activity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
+        activity = this;
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken("838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
+                .requestServerAuthCode("838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
+                .requestScopes(new Scope("https://www.googleapis.com/auth/userinfo.email"))
                 .requestEmail()
                 .build();
 
@@ -80,18 +97,6 @@ public class MainActivity extends Activity {
             finish();
         }
     }
-
-//    @Override
-//    protected void onSaveInstanceState(Bundle outState ) {
-//        super.onSaveInstanceState(outState);
-//        webView.saveState(outState);
-//    }
-//
-//    @Override
-//    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-//        super.onRestoreInstanceState(savedInstanceState);
-//        webView.restoreState(savedInstanceState);
-//    }
 
     public boolean isOnline(Context context) {
         ConnectivityManager conMgr = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -168,12 +173,10 @@ public class MainActivity extends Activity {
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-            String token = account.getIdToken();
+            assert account != null;
+            String authToken = account.getServerAuthCode();
             // Signed in successfully, show authenticated UI.
-            // Call Js auth method
-            String jsAuth = "javascript:googleAuthByToken(" + "'" + token + "'" + ")";
-            webView.loadUrl(jsAuth);
-//            Toast.makeText(getApplicationContext(), token, Toast.LENGTH_LONG).show();
+            getAccessToken(authToken);
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
@@ -217,17 +220,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    /**
-     * Indicates whether the specified app ins installed and can used as an intent. This
-     * method checks the package manager for installed packages that can
-     * respond to an intent with the specified app. If no suitable package is
-     * found, this method returns false.
-     *
-     * @param context The application's environment.
-     * @param appName The name of the package you want to check
-     *
-     * @return True if app is installed
-     */
     public static boolean isAppAvailable(Context context, String appName)
     {
         PackageManager pm = context.getPackageManager();
@@ -240,5 +232,42 @@ public class MainActivity extends Activity {
         {
             return false;
         }
+    }
+
+
+    public void getAccessToken(String authCode) {
+        OkHttpClient client = new OkHttpClient();
+        RequestBody requestBody = new FormEncodingBuilder()
+                .add("grant_type", "authorization_code")
+                .add("client_id", "838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
+                .add("client_secret", "_4r_WYVsXPo3Zy4tqLO4F7D3")
+                .add("code", authCode)
+                .build();
+        final Request request = new Request.Builder()
+                .url("https://www.googleapis.com/oauth2/v4/token")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .post(requestBody)
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+
+            }
+            @Override
+            public void onResponse(Response response) throws IOException {
+                try {
+                    JSONObject jsonObject = new JSONObject(response.body().string());
+                    mAccessToken = jsonObject.get("access_token").toString();
+                    activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            String jsAuth = "javascript:googleAuthByToken('" + mAccessToken + "')";
+                            webView.loadUrl(jsAuth);
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }
