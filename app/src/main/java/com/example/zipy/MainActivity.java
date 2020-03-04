@@ -6,10 +6,8 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
@@ -47,6 +45,9 @@ public class MainActivity extends Activity {
     int RC_SIGN_IN = 0;
     private String mAccessToken;
     Activity activity;
+    Context context;
+    private final String client_id = "536995109378-qm8nap6j2i0i5a3ma3ete5kag1dd2qlb.apps.googleusercontent.com";
+    private final String client_secret = "pYQmS3qeUMegVRQMuz-rjPX7";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,10 +55,10 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
         activity = this;
+        context = this;
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
-                .requestServerAuthCode("838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
+                .requestServerAuthCode(client_id)
                 .requestScopes(new Scope("https://www.googleapis.com/auth/userinfo.email"))
                 .requestEmail()
                 .build();
@@ -91,7 +92,11 @@ public class MainActivity extends Activity {
     public void onBackPressed() {
 
         if (webView.canGoBack()) {
-            webView.goBack();
+            if (webView.getUrl().startsWith("tg:resolve") || webView.getUrl().startsWith("mailto:")) {
+                webView.loadUrl("https://zipy.co.il");
+            } else {
+                webView.goBack();
+            }
         } else {
             super.onBackPressed();
             finish();
@@ -118,10 +123,15 @@ public class MainActivity extends Activity {
                     Intent share = new Intent(Intent.ACTION_SEND);
                     share.setType("text/plain");
                     startActivity(Intent.createChooser(share, "Select application"));
+                    view.loadUrl("https://zipy.co.il");
                     return true;
                 }
                 if (url.startsWith("https://t.me")) {
-                    intentMessageTelegram();
+                    ThirdPartyApp.intentMessageTelegram(context);
+                    return true;
+                }
+                if (url.startsWith("tg:resolve")) {
+                    view.loadUrl("https://zipy.co.il");
                     return true;
                 }
                 return false;
@@ -173,7 +183,7 @@ public class MainActivity extends Activity {
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-            assert account != null;
+
             String authToken = account.getServerAuthCode();
             // Signed in successfully, show authenticated UI.
             getAccessToken(authToken);
@@ -207,40 +217,12 @@ public class MainActivity extends Activity {
         }
     }
 
-    void intentMessageTelegram()
-    {
-        final String appName = "org.telegram.messenger";
-        final boolean isAppInstalled = isAppAvailable(getApplicationContext(), appName);
-        if (isAppInstalled) {
-            Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=zipyofficial"));
-            startActivity(myIntent);
-        }
-        else {
-            Toast.makeText(this, "Telegram not Installed", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    public static boolean isAppAvailable(Context context, String appName)
-    {
-        PackageManager pm = context.getPackageManager();
-        try
-        {
-            pm.getPackageInfo(appName, PackageManager.GET_ACTIVITIES);
-            return true;
-        }
-        catch (PackageManager.NameNotFoundException e)
-        {
-            return false;
-        }
-    }
-
-
     public void getAccessToken(String authCode) {
         OkHttpClient client = new OkHttpClient();
         RequestBody requestBody = new FormEncodingBuilder()
                 .add("grant_type", "authorization_code")
-                .add("client_id", "838105761342-qnrepovld45885cuvqt2tf8cqqr4qov8.apps.googleusercontent.com")
-                .add("client_secret", "_4r_WYVsXPo3Zy4tqLO4F7D3")
+                .add("client_id", client_id)
+                .add("client_secret", client_secret)
                 .add("code", authCode)
                 .build();
         final Request request = new Request.Builder()
