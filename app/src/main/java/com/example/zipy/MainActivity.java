@@ -60,6 +60,7 @@ public class MainActivity extends Activity {
     private final String client_secret = "pYQmS3qeUMegVRQMuz-rjPX7";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
+    private String saved_url = home_page_url;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,7 +116,7 @@ public class MainActivity extends Activity {
     @Override
     public void onBackPressed() {
 
-        if (webView.isFocused() && webView.canGoBack()) {
+        if (webView.canGoBack()) {
             if (mWebviewPop != null) {
                 mWebviewPop.setVisibility(View.GONE);
                 mContainer.removeView(mWebviewPop);
@@ -178,7 +179,7 @@ public class MainActivity extends Activity {
                     // another Activity that handles URLs
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
-                    return true;
+                    return false;
                 } else if (url.startsWith("tel:")) {
                     Intent tel = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
                     startActivity(tel);
@@ -346,5 +347,37 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "MainActivity: onStart()");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "MainActivity: onResume()" + saved_url);
+        webView.loadUrl(saved_url);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "MainActivity: onPause()" + saved_url);
+        saved_url = webView.getUrl();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "MainActivity: onStop()");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "MainActivity: onDestroy()");
     }
 }
