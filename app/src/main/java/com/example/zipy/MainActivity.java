@@ -8,14 +8,21 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
 import android.util.Log;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -40,6 +47,9 @@ import java.io.IOException;
 public class MainActivity extends Activity {
 
     public WebView webView;
+    private WebView mWebviewPop;
+    private FrameLayout mContainer;
+
     private static final String TAG = "MyActivity";
     GoogleSignInClient mGoogleSignInClient;
     int RC_SIGN_IN = 0;
@@ -48,14 +58,17 @@ public class MainActivity extends Activity {
     Context context;
     private final String client_id = "536995109378-qm8nap6j2i0i5a3ma3ete5kag1dd2qlb.apps.googleusercontent.com";
     private final String client_secret = "pYQmS3qeUMegVRQMuz-rjPX7";
+    private final String home_page_url = "https://www.zipy.co.il/";
+    private String home_page_url_prefix = "zipy.co.il";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
+
         activity = this;
-        context = this;
+        context = this.getApplicationContext();
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestServerAuthCode(client_id)
@@ -66,9 +79,10 @@ public class MainActivity extends Activity {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         if (isOnline(getApplicationContext())) {
-            webView = (WebView)findViewById(R.id.webView);
+            webView = (WebView)findViewById(R.id.mWebView);
+            mContainer = (FrameLayout) findViewById(R.id.view);
             WebSettings webSettings = webView.getSettings();
-            final String ua = webView.getSettings().getUserAgentString().replace("; wv", "");
+            final String ua = webSettings.getUserAgentString().replace("; wv", "");
 
             CookieManager cookieManager = CookieManager.getInstance();
             cookieManager.setAcceptCookie(true);
@@ -79,32 +93,56 @@ public class MainActivity extends Activity {
             webSettings.setAppCacheEnabled(true);
             webSettings.setDomStorageEnabled(true);
             webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+            webSettings.setSupportMultipleWindows(true);
+
+            if (Build.VERSION.SDK_INT >= 21) {
+                webSettings.setMixedContentMode( WebSettings.MIXED_CONTENT_ALWAYS_ALLOW );
+            }
 
             webView.addJavascriptInterface(new JavaScriptInterface(this), "android");
-            webView.loadUrl("https://zipy.co.il/");
+
             webView.setWebViewClient(new CustomWebViewClient());
+            webView.setWebChromeClient(new UriWebChromeClient());
+
+            webView.loadUrl(home_page_url);
+
         } else {
             showAlert();
         }
+
     }
 
     @Override
     public void onBackPressed() {
 
-        if (webView.canGoBack()) {
-            if (webView.getUrl().startsWith("tg:resolve") || webView.getUrl().startsWith("mailto:")) {
-                webView.loadUrl("https://zipy.co.il");
-            } else {
-                webView.goBack();
+        if (webView.isFocused() && webView.canGoBack()) {
+            if (mWebviewPop != null) {
+                mWebviewPop.setVisibility(View.GONE);
+                mContainer.removeView(mWebviewPop);
+                mWebviewPop = null;
             }
+            webView.goBack();
         } else {
-            super.onBackPressed();
-            finish();
+            new AlertDialog.Builder(this)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setTitle("Exit!")
+                    .setMessage("Are you sure you want to close?")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            finish();
+                        }
+
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
         }
     }
 
     public boolean isOnline(Context context) {
         ConnectivityManager conMgr = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        assert conMgr != null;
         NetworkInfo netInfo = conMgr.getActiveNetworkInfo();
 
         if(netInfo == null || !netInfo.isConnected() || !netInfo.isAvailable()){
@@ -117,32 +155,94 @@ public class MainActivity extends Activity {
     private class CustomWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            String host = Uri.parse(url).getHost();
             if (isOnline(getApplicationContext())) {
-                view.loadUrl(url);
-                if (url.startsWith("mailto:")) {
-                    Intent share = new Intent(Intent.ACTION_SEND);
-                    share.setType("text/plain");
-                    startActivity(Intent.createChooser(share, "Select application"));
-                    view.loadUrl("https://zipy.co.il");
+
+                if( url.startsWith("http:") || url.startsWith("https:") ) {
+                    if (url.startsWith("https://t.me")) {
+                        ThirdPartyApp.intentMessageTelegram(activity);
+                        return false;
+                    }
+                    if (host.contains(home_page_url_prefix)) {
+                        if (mWebviewPop != null) {
+                            mWebviewPop.setVisibility(View.GONE);
+                            mContainer.removeView(mWebviewPop);
+                            mWebviewPop = null;
+                        }
+                        return false;
+                    }
+                    if (host.equals("m.facebook.com") || host.equals("www.facebook.com") || host.equals("facebook.com")) {
+                        return false;
+                    }
+                    // Otherwise, the link is not for a page on my site, so launch
+                    // another Activity that handles URLs
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    startActivity(intent);
                     return true;
-                }
-                if (url.startsWith("https://t.me")) {
-                    ThirdPartyApp.intentMessageTelegram(context);
+                } else if (url.startsWith("tel:")) {
+                    Intent tel = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
+                    startActivity(tel);
                     return true;
-                }
-                if (url.startsWith("tg:resolve")) {
-                    view.loadUrl("https://zipy.co.il");
+                } else if (url.startsWith("mailto:")) {
+                    Intent mail = new Intent(Intent.ACTION_SEND);
+                    mail.setType("application/octet-stream");
+                    String AddressMail = new String(url.replace("mailto:" , "")) ;
+                    mail.putExtra(Intent.EXTRA_EMAIL, new String[]{ AddressMail });
+                    mail.putExtra(Intent.EXTRA_SUBJECT, "");
+                    mail.putExtra(Intent.EXTRA_TEXT, "");
+                    startActivity(mail);
+                    return true;
+                } else if (url.startsWith("tg:resolve")) {
+                    view.loadUrl(home_page_url);
                     return true;
                 }
                 return false;
             } else {
                 showAlert();
+                return true;
             }
+        }
+
+        public void onPageFinished(WebView view, String url) {
+            webView.loadUrl("javascript:document.documentElement.classList.add('android-app')");
+            if (url.startsWith("https://m.facebook.com/dialog/oauth")) {
+                if (mWebviewPop != null) {
+                    mWebviewPop.setVisibility(View.GONE);
+                    mContainer.removeView(mWebviewPop);
+                    mWebviewPop = null;
+                }
+                view.loadUrl(url);
+                return;
+            }
+
+            super.onPageFinished(view, url);
+        }
+
+    }
+
+    private class UriWebChromeClient extends WebChromeClient {
+
+        @Override
+        public boolean onCreateWindow(WebView view, boolean isDialog,
+                                      boolean isUserGesture, Message resultMsg) {
+            mWebviewPop = new WebView(context);
+            mWebviewPop.setVerticalScrollBarEnabled(false);
+            mWebviewPop.setHorizontalScrollBarEnabled(false);
+            mWebviewPop.setWebViewClient(new CustomWebViewClient());
+            mWebviewPop.getSettings().setJavaScriptEnabled(true);
+            mWebviewPop.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            mContainer.addView(mWebviewPop);
+            WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+            transport.setWebView(mWebviewPop);
+            resultMsg.sendToTarget();
+
             return true;
         }
 
-        public void onPageFinished(WebView view, String weburl){
-            webView.loadUrl("javascript:document.documentElement.classList.add('android-app')");
+        @Override
+        public void onCloseWindow(WebView window) {
+            Log.d("onCloseWindow", "called");
         }
 
     }
@@ -209,11 +309,6 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void googleAuth() {
             signIn();
-        }
-
-        @JavascriptInterface
-        public void debug(String data) {
-//            Toast.makeText(getApplicationContext(), data.toString(), Toast.LENGTH_LONG).show();
         }
     }
 

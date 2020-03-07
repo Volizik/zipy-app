@@ -1,5 +1,6 @@
 package com.example.zipy;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -7,20 +8,21 @@ import android.net.Uri;
 import android.widget.Toast;
 
 public class ThirdPartyApp {
-    static void intentMessageTelegram(Context context) {
-        final String appName = "org.telegram.messenger";
-        final boolean isAppInstalled = isAppAvailable(context, appName);
+    static void intentMessageTelegram(Activity activity) {
+        final boolean isAppInstalled = isAppAvailable(activity.getApplicationContext());
         if (isAppInstalled) {
             Intent myIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("tg://resolve?domain=zipyofficial"));
-            context.startActivity(myIntent);
+            activity.startActivity(myIntent);
         }
         else {
-            Toast.makeText(context, "Telegram not Installed", Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity.getApplicationContext(), "Telegram not Installed", Toast.LENGTH_SHORT).show();
         }
     }
 
-    public static boolean isAppAvailable(Context context, String appName) {
+    private static boolean isAppAvailable(Context context) {
+        final String appName = "org.telegram.messenger";
         PackageManager pm = context.getPackageManager();
+
         try {
             pm.getPackageInfo(appName, PackageManager.GET_ACTIVITIES);
             return true;
