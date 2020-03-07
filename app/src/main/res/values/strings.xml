@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Zipy</string>
+    <string name="facebook_app_id">855277121580186</string>
+    <string name="fb_login_protocol_scheme">fb855277121580186</string>
 </resources>

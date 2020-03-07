@@ -18,6 +18,15 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import com.facebook.AccessToken;
+import com.facebook.AccessTokenTracker;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.login.LoginResult;
+import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -36,10 +45,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class MainActivity extends Activity {
 
     public WebView webView;
+    private LoginButton loginButton;
+    CallbackManager callbackManager;
     private static final String TAG = "MyActivity";
     GoogleSignInClient mGoogleSignInClient;
     int RC_SIGN_IN = 0;
@@ -56,6 +68,26 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         activity = this;
         context = this;
+        loginButton = findViewById(R.id.login_button);
+        callbackManager = CallbackManager.Factory.create();
+
+        loginButton.setPermissions(Arrays.asList("email", "public_profile"));
+        loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                LoginResult t = loginResult;
+            }
+
+            @Override
+            public void onCancel() {
+
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+
+            }
+        });
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestServerAuthCode(client_id)
@@ -169,6 +201,8 @@ public class MainActivity extends Activity {
     // Google auth
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        callbackManager.onActivityResult(requestCode, resultCode, data);
+
         super.onActivityResult(requestCode, resultCode, data);
 
         // Result returned from launching the Intent from GoogleSignInClient.getSignInIntent(...);
@@ -249,6 +283,25 @@ public class MainActivity extends Activity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+    }
+
+    AccessTokenTracker tokenTracker = new AccessTokenTracker() {
+        @Override
+        protected void onCurrentAccessTokenChanged(AccessToken oldAccessToken, AccessToken currentAccessToken) {
+            if (currentAccessToken != null) {
+                loadUserProfile(currentAccessToken);
+            }
+        }
+    };
+
+    private void loadUserProfile(AccessToken newAccessToken) {
+        GraphRequest request = GraphRequest.newMeRequest(newAccessToken, new GraphRequest.GraphJSONObjectCallback() {
+            @Override
+            public void onCompleted(JSONObject object, GraphResponse response) {
+                JSONObject o = object;
+                GraphResponse r = response;
             }
         });
     }
