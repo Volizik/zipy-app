@@ -32,6 +32,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.Task;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.install.InstallStateUpdatedListener;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -56,11 +58,15 @@ public class MainActivity extends Activity {
     private String mAccessToken;
     Activity activity;
     Context context;
-    private final String client_id = "536995109378-qm8nap6j2i0i5a3ma3ete5kag1dd2qlb.apps.googleusercontent.com";
-    private final String client_secret = "pYQmS3qeUMegVRQMuz-rjPX7";
+    private final String client_id = "163697187066.apps.googleusercontent.com";
+    private final String client_secret = "6XgiioD9mZGx8-sXfiOIx-Tr";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
     private String saved_url = home_page_url;
+
+    private static final int REQ_CODE_VERSION_UPDATE = 530;
+    private AppUpdateManager appUpdateManager;
+    private InstallStateUpdatedListener installStateUpdatedListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,12 +122,12 @@ public class MainActivity extends Activity {
     @Override
     public void onBackPressed() {
 
+        if (mWebviewPop != null) {
+            mWebviewPop.setVisibility(View.GONE);
+            mContainer.removeView(mWebviewPop);
+            mWebviewPop = null;
+        }
         if (webView.canGoBack()) {
-            if (mWebviewPop != null) {
-                mWebviewPop.setVisibility(View.GONE);
-                mContainer.removeView(mWebviewPop);
-                mWebviewPop = null;
-            }
             webView.goBack();
         } else {
             new AlertDialog.Builder(this)
@@ -175,6 +181,7 @@ public class MainActivity extends Activity {
                     if (host.equals("m.facebook.com") || host.equals("www.facebook.com") || host.equals("facebook.com")) {
                         return false;
                     }
+
                     // Otherwise, the link is not for a page on my site, so launch
                     // another Activity that handles URLs
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -340,6 +347,7 @@ public class MainActivity extends Activity {
                         public void run() {
                             String jsAuth = "javascript:googleAuthByToken('" + mAccessToken + "')";
                             webView.loadUrl(jsAuth);
+                            webView.loadUrl(home_page_url);
                         }
                     });
                 } catch (JSONException e) {
@@ -359,14 +367,14 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "MainActivity: onResume()" + saved_url);
-        webView.loadUrl(saved_url);
+//        webView.loadUrl(saved_url);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         Log.d(TAG, "MainActivity: onPause()" + saved_url);
-        saved_url = webView.getUrl();
+//        saved_url = webView.getUrl();
     }
 
     @Override
