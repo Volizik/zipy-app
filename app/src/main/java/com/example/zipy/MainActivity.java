@@ -58,8 +58,8 @@ public class MainActivity extends Activity {
     private String mAccessToken;
     Activity activity;
     Context context;
-    private final String client_id = "163697187066.apps.googleusercontent.com";
-    private final String client_secret = "6XgiioD9mZGx8-sXfiOIx-Tr";
+    private final String client_id = "";
+    private final String client_secret = "";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
     private String saved_url = home_page_url;
