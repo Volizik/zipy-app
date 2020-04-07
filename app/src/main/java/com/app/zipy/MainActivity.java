@@ -1,4 +1,4 @@
-package com.example.zipy;
+package com.app.zipy;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -11,6 +11,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
@@ -32,8 +33,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.Task;
-import com.google.android.play.core.appupdate.AppUpdateManager;
-import com.google.android.play.core.install.InstallStateUpdatedListener;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -58,15 +57,11 @@ public class MainActivity extends Activity {
     private String mAccessToken;
     Activity activity;
     Context context;
-    private final String client_id = "";
-    private final String client_secret = "";
+    private final String client_id = "163697187066.apps.googleusercontent.com";
+    private final String client_secret = "6XgiioD9mZGx8-sXfiOIx-Tr";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
     private String saved_url = home_page_url;
-
-    private static final int REQ_CODE_VERSION_UPDATE = 530;
-    private AppUpdateManager appUpdateManager;
-    private InstallStateUpdatedListener installStateUpdatedListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,7 +109,7 @@ public class MainActivity extends Activity {
             webView.loadUrl(home_page_url);
 
         } else {
-            showAlert();
+            showOnlineAlert();
         }
 
     }
@@ -132,9 +127,9 @@ public class MainActivity extends Activity {
         } else {
             new AlertDialog.Builder(this)
                     .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setTitle("Exit!")
-                    .setMessage("Are you sure you want to close?")
-                    .setPositiveButton("Yes", new DialogInterface.OnClickListener()
+                    .setTitle("יציאה")
+                    .setMessage("האם לצאת מזיפי?")
+                    .setPositiveButton("כן", new DialogInterface.OnClickListener()
                     {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -142,7 +137,7 @@ public class MainActivity extends Activity {
                         }
 
                     })
-                    .setNegativeButton("No", null)
+                    .setNegativeButton("לא", null)
                     .show();
         }
     }
@@ -153,7 +148,7 @@ public class MainActivity extends Activity {
         NetworkInfo netInfo = conMgr.getActiveNetworkInfo();
 
         if(netInfo == null || !netInfo.isConnected() || !netInfo.isAvailable()){
-            Toast.makeText(context, "No Internet connection!", Toast.LENGTH_LONG).show();
+            showOnlineAlert();
             return false;
         }
         return true;
@@ -206,7 +201,7 @@ public class MainActivity extends Activity {
                 }
                 return false;
             } else {
-                showAlert();
+                showOnlineAlert();
                 return true;
             }
         }
@@ -255,12 +250,12 @@ public class MainActivity extends Activity {
 
     }
 
-    private void showAlert() {
+    private void showOnlineAlert() {
         try {
             AlertDialog alert = new AlertDialog.Builder(this).create();
-            alert.setTitle("Error");
-            alert.setMessage("Internet not available, Cross check your internet connectivity and try again");
-            alert.setButton(Dialog.BUTTON_POSITIVE,"OK",new DialogInterface.OnClickListener(){
+            alert.setTitle("שגיאה");
+            alert.setMessage("אינטרנט לא זמין. יש לבדוק שהמכשיר מחובר לרשת ולנסות שוב");
+            alert.setButton(Dialog.BUTTON_POSITIVE,"אוקיי",new DialogInterface.OnClickListener(){
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     finish();
@@ -347,7 +342,12 @@ public class MainActivity extends Activity {
                         public void run() {
                             String jsAuth = "javascript:googleAuthByToken('" + mAccessToken + "')";
                             webView.loadUrl(jsAuth);
-                            webView.loadUrl(home_page_url);
+                            Handler handler = new Handler();
+                            handler.postDelayed(new Runnable() {
+                                public void run() {
+                                    webView.loadUrl(home_page_url);
+                                }
+                            }, 1000);
                         }
                     });
                 } catch (JSONException e) {
@@ -388,4 +388,5 @@ public class MainActivity extends Activity {
         super.onDestroy();
         Log.d(TAG, "MainActivity: onDestroy()");
     }
+
 }

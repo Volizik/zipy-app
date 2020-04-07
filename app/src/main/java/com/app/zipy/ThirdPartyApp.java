@@ -1,4 +1,4 @@
-package com.example.zipy;
+package com.app.zipy;
 
 import android.app.Activity;
 import android.content.Context;
