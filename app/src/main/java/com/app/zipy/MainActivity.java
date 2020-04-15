@@ -61,7 +61,6 @@ public class MainActivity extends Activity {
     private final String client_secret = "6XgiioD9mZGx8-sXfiOIx-Tr";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
-    private String saved_url = home_page_url;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +70,10 @@ public class MainActivity extends Activity {
 
         activity = this;
         context = this.getApplicationContext();
+
+        final Intent intent = getIntent();
+        final String action = intent.getAction();
+        final String data = intent.getDataString();
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestServerAuthCode(client_id)
@@ -106,7 +109,12 @@ public class MainActivity extends Activity {
             webView.setWebViewClient(new CustomWebViewClient());
             webView.setWebChromeClient(new UriWebChromeClient());
 
-            webView.loadUrl(home_page_url);
+            if (Intent.ACTION_VIEW.equals(action) && data != null) {
+                webView.loadUrl(addParamsToURL(data));
+
+            } else {
+                webView.loadUrl(addParamsToURL(home_page_url));
+            }
 
         } else {
             showOnlineAlert();
@@ -125,7 +133,7 @@ public class MainActivity extends Activity {
         if (webView.canGoBack()) {
             webView.goBack();
         } else {
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(this, R.style.AlertDialogCustom)
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .setTitle("יציאה")
                     .setMessage("האם לצאת מזיפי?")
@@ -171,6 +179,8 @@ public class MainActivity extends Activity {
                             mContainer.removeView(mWebviewPop);
                             mWebviewPop = null;
                         }
+                        url = addParamsToURL(url);
+                        view.loadUrl(url);
                         return false;
                     }
                     if (host.equals("m.facebook.com") || host.equals("www.facebook.com") || host.equals("facebook.com")) {
@@ -250,9 +260,23 @@ public class MainActivity extends Activity {
 
     }
 
+    private String addParamsToURL(String url) {
+        if (url.contains("utm_medium=app&utm_source=app") || url.contains("utm_medium%3Dapp%26utm_source%3Dapp")) {
+            return url;
+        }
+
+        if (url.contains("#")) {
+            String[] urlArray = url.split("#");
+            String params = url.contains("?") ? "&utm_medium=app&utm_source=app" : "?utm_medium=app&utm_source=app";
+            return urlArray[0] + params + "#" + urlArray[1];
+        } else {
+            return url += url.contains("?") ? "&utm_medium=app&utm_source=app" : "?utm_medium=app&utm_source=app";
+        }
+    }
+
     private void showOnlineAlert() {
         try {
-            AlertDialog alert = new AlertDialog.Builder(this).create();
+            AlertDialog alert = new AlertDialog.Builder(this, R.style.AlertDialogCustom).create();
             alert.setTitle("שגיאה");
             alert.setMessage("אינטרנט לא זמין. יש לבדוק שהמכשיר מחובר לרשת ולנסות שוב");
             alert.setButton(Dialog.BUTTON_POSITIVE,"אוקיי",new DialogInterface.OnClickListener(){
@@ -355,38 +379,6 @@ public class MainActivity extends Activity {
                 }
             }
         });
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(TAG, "MainActivity: onStart()");
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        Log.d(TAG, "MainActivity: onResume()" + saved_url);
-//        webView.loadUrl(saved_url);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.d(TAG, "MainActivity: onPause()" + saved_url);
-//        saved_url = webView.getUrl();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(TAG, "MainActivity: onStop()");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "MainActivity: onDestroy()");
     }
 
 }
