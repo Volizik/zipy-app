@@ -217,7 +217,13 @@ public class MainActivity extends Activity {
         }
 
         public void onPageFinished(WebView view, String url) {
-            webView.loadUrl("javascript:document.documentElement.classList.add('android-app')");
+            String script = "javascript:" +
+                    "document.documentElement.classList.add('android-app');" +
+                    "window.addEventListener('beforeunload', function () {" +
+                    "   document.querySelector('.android-app__preloader').classList.remove('hidden-all');" +
+                    "   return null;" +
+                    "})";
+            webView.loadUrl(script);
             if (url.startsWith("https://m.facebook.com/dialog/oauth")) {
                 if (mWebviewPop != null) {
                     mWebviewPop.setVisibility(View.GONE);
