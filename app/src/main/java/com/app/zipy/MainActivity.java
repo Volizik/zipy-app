@@ -124,8 +124,7 @@ public class MainActivity extends Activity {
                             }
 
                             // Get new Instance ID token
-                            String token = task.getResult().getToken();
-                            JavaScriptInterface.getInstance().setFCMToken(token);
+                            JavaScriptInterface.token = task.getResult().getToken();
                         }
                     });
 

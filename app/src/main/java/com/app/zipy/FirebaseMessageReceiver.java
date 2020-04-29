@@ -30,7 +30,7 @@ public class FirebaseMessageReceiver extends FirebaseMessagingService {
      */
     @Override
     public void onNewToken(String token) {
-        JavaScriptInterface.getInstance().setFCMToken(token);
+        JavaScriptInterface.token = token;
     }
 
     private void sendNotification(Map<String, String> data) {
