@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "698773263080",
+    "firebase_url": "https://zipy-app.firebaseio.com",
+    "project_id": "zipy-app",
+    "storage_bucket": "zipy-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:698773263080:android:2e0aaceea8992c1229ef5d",
+        "android_client_info": {
+          "package_name": "com.app.zipy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "698773263080-8epj2iteihckeh8rrnkfht3hoijgb6ed.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkq5BG6bVbfuMYZ23zHE0boHD09Dkp8c4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "698773263080-8epj2iteihckeh8rrnkfht3hoijgb6ed.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

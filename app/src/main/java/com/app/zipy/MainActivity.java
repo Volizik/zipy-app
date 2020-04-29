@@ -36,7 +36,11 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.FirebaseInstanceIdReceiver;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingService;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -109,6 +113,21 @@ public class MainActivity extends Activity {
             }
 
             webView.addJavascriptInterface(new JavaScriptInterface(this), "android");
+
+            FirebaseInstanceId.getInstance().getInstanceId()
+                    .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                        @Override
+                        public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                            if (!task.isSuccessful()) {
+                                Log.w(TAG, "getInstanceId failed", task.getException());
+                                return;
+                            }
+
+                            // Get new Instance ID token
+                            String token = task.getResult().getToken();
+                            JavaScriptInterface.getInstance().setFCMToken(token);
+                        }
+                    });
 
             webView.setWebViewClient(new CustomWebViewClient());
             webView.setWebChromeClient(new UriWebChromeClient());
@@ -338,18 +357,6 @@ public class MainActivity extends Activity {
         startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
-    public class JavaScriptInterface {
-        Context mContext;
-
-        JavaScriptInterface(Context c) {
-            mContext = c;
-        }
-
-        @JavascriptInterface
-        public void googleAuth() {
-            signIn();
-        }
-    }
 
     public void getAccessToken(String authCode) {
         OkHttpClient client = new OkHttpClient();
