@@ -18,7 +18,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.webkit.CookieManager;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -37,10 +36,8 @@ import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.iid.FirebaseInstanceId;
-import com.google.firebase.iid.FirebaseInstanceIdReceiver;
 import com.google.firebase.iid.InstanceIdResult;
 import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingService;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -111,8 +108,9 @@ public class MainActivity extends Activity {
             if (Build.VERSION.SDK_INT >= 21) {
                 webSettings.setMixedContentMode( WebSettings.MIXED_CONTENT_ALWAYS_ALLOW );
             }
-
-            webView.addJavascriptInterface(new JavaScriptInterface(this), "android");
+            JavaScriptInterface javaScriptInterface = JavaScriptInterface.getInstance();
+            JavaScriptInterface.mainActivity = this;
+            webView.addJavascriptInterface(javaScriptInterface, "android");
 
             FirebaseInstanceId.getInstance().getInstanceId()
                     .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
@@ -322,7 +320,6 @@ public class MainActivity extends Activity {
         }
     }
 
-
     // Google auth
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -355,7 +352,6 @@ public class MainActivity extends Activity {
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
     }
-
 
     public void getAccessToken(String authCode) {
         OkHttpClient client = new OkHttpClient();
@@ -397,6 +393,7 @@ public class MainActivity extends Activity {
                 }
             }
         });
+
     }
 
 }

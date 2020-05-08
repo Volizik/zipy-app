@@ -5,14 +5,10 @@ import android.webkit.JavascriptInterface;
 
 public class JavaScriptInterface {
     public static String token;
+    public static MainActivity mainActivity;
     private static JavaScriptInterface instance;
-    private MainActivity mainActivity;
 
-    private JavaScriptInterface() {}
-
-    public JavaScriptInterface(MainActivity activity) {
-        mainActivity = activity;
-    }
+    public JavaScriptInterface() {}
 
     public static JavaScriptInterface getInstance() {
         if (instance == null) {
