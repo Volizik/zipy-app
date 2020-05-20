@@ -24,9 +24,6 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -34,9 +31,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
-import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.messaging.FirebaseMessaging;
+import com.onesignal.OSPermissionSubscriptionState;
+import com.onesignal.OneSignal;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -87,6 +84,13 @@ public class MainActivity extends Activity {
 
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
+        OneSignal.startInit(this)
+                .inFocusDisplaying(OneSignal.OSInFocusDisplayOption.Notification)
+                .unsubscribeWhenNotificationsAreDisabled(true)
+                .init();
+
+        String UUID = OneSignal.getPermissionSubscriptionState().getSubscriptionStatus().getUserId();
+
         if (isOnline(getApplicationContext())) {
             webView = (WebView)findViewById(R.id.mWebView);
             mContainer = (FrameLayout) findViewById(R.id.view);
@@ -123,8 +127,6 @@ public class MainActivity extends Activity {
         } else {
             showOnlineAlert();
         }
-
-        FirebaseMessaging.getInstance().subscribeToTopic("products");
 
     }
 
