@@ -24,6 +24,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -33,6 +34,8 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.Task;
 import com.onesignal.OSPermissionSubscriptionState;
+import com.onesignal.OSSubscriptionObserver;
+import com.onesignal.OSSubscriptionStateChanges;
 import com.onesignal.OneSignal;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.FormEncodingBuilder;
@@ -46,7 +49,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OSSubscriptionObserver {
 
     public WebView webView;
     private WebView mWebviewPop;
@@ -62,6 +65,7 @@ public class MainActivity extends Activity {
     private final String client_secret = "6XgiioD9mZGx8-sXfiOIx-Tr";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
+    JavaScriptInterface javaScriptInterface;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,12 +73,16 @@ public class MainActivity extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
 
+        // TODO: remove for production
+//        WebView.setWebContentsDebuggingEnabled(true);
+
         activity = this;
         context = this.getApplicationContext();
 
         final Intent intent = getIntent();
         final String action = intent.getAction();
         final String data = intent.getDataString();
+        javaScriptInterface = new JavaScriptInterface();
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestServerAuthCode(client_id)
@@ -88,8 +96,8 @@ public class MainActivity extends Activity {
                 .inFocusDisplaying(OneSignal.OSInFocusDisplayOption.Notification)
                 .unsubscribeWhenNotificationsAreDisabled(true)
                 .init();
+        OneSignal.addSubscriptionObserver(this);
 
-        String UUID = OneSignal.getPermissionSubscriptionState().getSubscriptionStatus().getUserId();
 
         if (isOnline(getApplicationContext())) {
             webView = (WebView)findViewById(R.id.mWebView);
@@ -112,7 +120,7 @@ public class MainActivity extends Activity {
                 webSettings.setMixedContentMode( WebSettings.MIXED_CONTENT_ALWAYS_ALLOW );
             }
 
-            webView.addJavascriptInterface(new JavaScriptInterface(this), "android");
+            webView.addJavascriptInterface(javaScriptInterface, "android");
 
             webView.setWebViewClient(new CustomWebViewClient());
             webView.setWebChromeClient(new UriWebChromeClient());
@@ -306,7 +314,6 @@ public class MainActivity extends Activity {
         }
     }
 
-
     // Google auth
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -341,15 +348,16 @@ public class MainActivity extends Activity {
     }
 
     public class JavaScriptInterface {
-        Context mContext;
-
-        JavaScriptInterface(Context c) {
-            mContext = c;
-        }
+        String token;
 
         @JavascriptInterface
         public void googleAuth() {
             signIn();
+        }
+
+        @JavascriptInterface
+        public String getToken() {
+            return token;
         }
     }
 
@@ -393,6 +401,12 @@ public class MainActivity extends Activity {
                 }
             }
         });
+    }
+
+    public void onOSSubscriptionChanged(OSSubscriptionStateChanges stateChanges) {
+        if (!stateChanges.getFrom().getSubscribed() && stateChanges.getTo().getSubscribed()) {
+            javaScriptInterface.token = stateChanges.getTo().getUserId();
+        }
     }
 
 }

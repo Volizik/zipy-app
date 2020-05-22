@@ -27,7 +27,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         manifestPlaceholders = [
-                onesignal_app_id: '05ccb470-6d14-4491-b805-b03d0c31ccc1',
+                onesignal_app_id: '2941c4ec-24d6-45ad-bec7-f6e754b98543',
                 // Project number pulled from dashboard, local value is ignored.
                 onesignal_google_project_number: 'REMOTE'
         ]
@@ -51,5 +51,5 @@ dependencies {
     implementation 'com.google.android.gms:play-services-auth:18.0.0'
     implementation 'com.squareup.okhttp:okhttp:2.5.0'
 
-    implementation 'com.onesignal:OneSignal:[3.13.0, 3.99.99]'
+    implementation 'com.onesignal:OneSignal:3.13.2'
 }
