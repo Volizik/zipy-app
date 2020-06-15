@@ -33,6 +33,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.tasks.Task;
+import com.onesignal.OSNotificationOpenResult;
 import com.onesignal.OSPermissionSubscriptionState;
 import com.onesignal.OSSubscriptionObserver;
 import com.onesignal.OSSubscriptionStateChanges;
@@ -93,6 +94,21 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         OneSignal.startInit(this)
+                .setNotificationOpenedHandler(new OneSignal.NotificationOpenedHandler() {
+                    @Override
+                    public void notificationOpened(OSNotificationOpenResult result) {
+                        JSONObject data = result.notification.payload.additionalData;
+                        String launchingUrl;
+                        if (data != null) {
+                            launchingUrl = addParamsToURL(data.optString("launchUrl", home_page_url));
+                            Log.d("LOGGED", "notificationOpened: " + launchingUrl);
+
+                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(launchingUrl), context, MainActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                        }
+                    }
+                })
                 .inFocusDisplaying(OneSignal.OSInFocusDisplayOption.Notification)
                 .unsubscribeWhenNotificationsAreDisabled(true)
                 .init();
@@ -283,7 +299,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
     }
 
     private String addParamsToURL(String url) {
-        if (url.contains("utm_medium=app&utm_source=app") || url.contains("utm_medium%3Dapp%26utm_source%3Dapp")) {
+        if (url.contains("utm_medium=app&utm_source=app") || url.contains("utm_medium%3Dapp%26utm_source%3Dapp") || !url.contains("zipy.co.il")) {
             return url;
         }
 
