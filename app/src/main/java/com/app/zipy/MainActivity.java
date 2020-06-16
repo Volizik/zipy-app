@@ -2,12 +2,9 @@ package com.app.zipy;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -67,15 +64,13 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
     JavaScriptInterface javaScriptInterface;
+    NetworkHelper networkHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
-
-        // TODO: remove for production
-//        WebView.setWebContentsDebuggingEnabled(true);
 
         activity = this;
         context = this.getApplicationContext();
@@ -84,6 +79,9 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
         final String action = intent.getAction();
         final String data = intent.getDataString();
         javaScriptInterface = new JavaScriptInterface();
+
+
+        networkHelper = new NetworkHelper(activity);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestServerAuthCode(client_id)
@@ -115,7 +113,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
         OneSignal.addSubscriptionObserver(this);
 
 
-        if (isOnline(getApplicationContext())) {
+        if (networkHelper.isOnline()) {
             webView = (WebView)findViewById(R.id.mWebView);
             mContainer = (FrameLayout) findViewById(R.id.view);
             WebSettings webSettings = webView.getSettings();
@@ -149,7 +147,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
             }
 
         } else {
-            showOnlineAlert();
+            networkHelper.showOnlineAlert();
         }
 
     }
@@ -182,23 +180,11 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
         }
     }
 
-    public boolean isOnline(Context context) {
-        ConnectivityManager conMgr = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        assert conMgr != null;
-        NetworkInfo netInfo = conMgr.getActiveNetworkInfo();
-
-        if(netInfo == null || !netInfo.isConnected() || !netInfo.isAvailable()){
-            showOnlineAlert();
-            return false;
-        }
-        return true;
-    }
-
     private class CustomWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             String host = Uri.parse(url).getHost();
-            if (isOnline(getApplicationContext())) {
+            if (networkHelper.isOnline()) {
 
                 if( url.startsWith("http:") || url.startsWith("https:") ) {
                     if (url.startsWith("https://t.me")) {
@@ -243,7 +229,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
                 }
                 return false;
             } else {
-                showOnlineAlert();
+                networkHelper.showOnlineAlert();
                 return true;
             }
         }
@@ -309,24 +295,6 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
             return urlArray[0] + params + "#" + urlArray[1];
         } else {
             return url += url.contains("?") ? "&utm_medium=app&utm_source=app" : "?utm_medium=app&utm_source=app";
-        }
-    }
-
-    private void showOnlineAlert() {
-        try {
-            AlertDialog alert = new AlertDialog.Builder(this, R.style.AlertDialogCustom).create();
-            alert.setTitle("שגיאה");
-            alert.setMessage("אינטרנט לא זמין. יש לבדוק שהמכשיר מחובר לרשת ולנסות שוב");
-            alert.setButton(Dialog.BUTTON_POSITIVE,"אוקיי",new DialogInterface.OnClickListener(){
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    finish();
-                }
-            });
-
-            alert.show();
-        } catch (Exception e) {
-            Log.d(TAG, "Show Dialog: " + e.getMessage());
         }
     }
 
