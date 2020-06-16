@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Zipy</string>
+    <string name="client_id">163697187066.apps.googleusercontent.com</string>
+    <string name="client_secret">6XgiioD9mZGx8-sXfiOIx-Tr</string>
+    <string name="home_page_url">https://www.zipy.co.il/</string>
+    <string name="home_page_url_prefix">zipy.co.il/</string>
 </resources>
