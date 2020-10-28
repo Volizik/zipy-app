@@ -17,6 +17,7 @@ import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -130,10 +131,6 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
             webSettings.setJavaScriptCanOpenWindowsAutomatically(true);
             webSettings.setSupportMultipleWindows(true);
 
-            if (Build.VERSION.SDK_INT >= 21) {
-                webSettings.setMixedContentMode( WebSettings.MIXED_CONTENT_ALWAYS_ALLOW );
-            }
-
             webView.addJavascriptInterface(javaScriptInterface, "android");
 
             webView.setWebViewClient(new CustomWebViewClient());
@@ -159,8 +156,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
             mWebviewPop.setVisibility(View.GONE);
             mContainer.removeView(mWebviewPop);
             mWebviewPop = null;
-        }
-        if (webView.canGoBack()) {
+        } else if (webView.canGoBack()) {
             webView.goBack();
         } else {
             new AlertDialog.Builder(this, R.style.AlertDialogCustom)
@@ -192,7 +188,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
                         return false;
                     }
                     if (host.contains(home_page_url_prefix)) {
-                        if (mWebviewPop != null) {
+                        if (mWebviewPop != null && !url.contains(home_page_url_prefix + "/tracking")) {
                             mWebviewPop.setVisibility(View.GONE);
                             mContainer.removeView(mWebviewPop);
                             mWebviewPop = null;
@@ -201,13 +197,17 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
                         view.loadUrl(url);
                         return false;
                     }
-                    if (host.equals("m.facebook.com") || host.equals("www.facebook.com") || host.equals("facebook.com")) {
+
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    if (host.contains("facebook")) {
+                        if (url.equals("https://www.facebook.com/zipy.co.il")) {
+                            startActivity(intent);
+                        }
                         return false;
                     }
 
                     // Otherwise, the link is not for a page on my site, so launch
                     // another Activity that handles URLs
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
                     return false;
                 } else if (url.startsWith("tel:")) {
@@ -217,7 +217,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
                 } else if (url.startsWith("mailto:")) {
                     Intent mail = new Intent(Intent.ACTION_SEND);
                     mail.setType("application/octet-stream");
-                    String AddressMail = new String(url.replace("mailto:" , "")) ;
+                    String AddressMail = url.replace("mailto:" , "") ;
                     mail.putExtra(Intent.EXTRA_EMAIL, new String[]{ AddressMail });
                     mail.putExtra(Intent.EXTRA_SUBJECT, "");
                     mail.putExtra(Intent.EXTRA_TEXT, "");
