@@ -2,6 +2,7 @@ package com.app.zipy;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -16,6 +17,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -54,18 +56,22 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
     private WebView mWebviewPop;
     private FrameLayout mContainer;
 
-    private static final String TAG = "MyActivity";
+    JavaScriptInterface javaScriptInterface;
+    NetworkHelper networkHelper;
     GoogleSignInClient mGoogleSignInClient;
-    int RC_SIGN_IN = 0;
-    private String mAccessToken;
     Activity activity;
     Context context;
+
+    int RC_SIGN_IN = 0;
+    private static final String TAG = "MyActivity";
+    private String mAccessToken;
     private final String client_id = "163697187066.apps.googleusercontent.com";
     private final String client_secret = "6XgiioD9mZGx8-sXfiOIx-Tr";
     private final String home_page_url = "https://www.zipy.co.il/";
     private String home_page_url_prefix = "zipy.co.il";
-    JavaScriptInterface javaScriptInterface;
-    NetworkHelper networkHelper;
+    public static final int REQUEST_SELECT_FILE = 100;
+    public ValueCallback<Uri[]> uploadMessage;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +81,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
 
         activity = this;
         context = this.getApplicationContext();
+
 
         final Intent intent = getIntent();
         final String action = intent.getAction();
@@ -133,8 +140,10 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
 
             webView.addJavascriptInterface(javaScriptInterface, "android");
 
+            UriWebChromeClient uriWebChromeClient = new UriWebChromeClient();
+            uriWebChromeClient.activity = this;
             webView.setWebViewClient(new CustomWebViewClient());
-            webView.setWebChromeClient(new UriWebChromeClient());
+            webView.setWebChromeClient(uriWebChromeClient);
 
             if (Intent.ACTION_VIEW.equals(action) && data != null) {
                 webView.loadUrl(addParamsToURL(data));
@@ -176,7 +185,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
         }
     }
 
-    private class CustomWebViewClient extends WebViewClient {
+    public class CustomWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             String host = Uri.parse(url).getHost();
@@ -257,7 +266,9 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
 
     }
 
-    private class UriWebChromeClient extends WebChromeClient {
+    public class UriWebChromeClient extends WebChromeClient {
+
+        public MainActivity activity;
 
         @Override
         public boolean onCreateWindow(WebView view, boolean isDialog,
@@ -280,6 +291,27 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
         @Override
         public void onCloseWindow(WebView window) {
             Log.d("onCloseWindow", "called");
+        }
+
+        public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+            // make sure there is no existing message
+            if (activity.uploadMessage != null) {
+                activity.uploadMessage.onReceiveValue(null);
+                activity.uploadMessage = null;
+            }
+
+            activity.uploadMessage = filePathCallback;
+
+            Intent intent = fileChooserParams.createIntent();
+            try {
+                activity.startActivityForResult(intent, activity.REQUEST_SELECT_FILE);
+            } catch (ActivityNotFoundException e) {
+                activity.uploadMessage = null;
+                Toast.makeText(activity, "Cannot open file chooser", Toast.LENGTH_LONG).show();
+                return false;
+            }
+
+            return true;
         }
 
     }
@@ -310,6 +342,13 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
             // a listener.
             Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
             handleSignInResult(task);
+        }
+
+        // for input type file
+        if (requestCode == REQUEST_SELECT_FILE) {
+            if (uploadMessage == null) return;
+            uploadMessage.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            uploadMessage = null;
         }
     }
     // Google auth
