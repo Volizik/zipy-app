@@ -47,6 +47,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 
+
 public class MainActivity extends Activity implements OSSubscriptionObserver {
 
     public WebView webView;
@@ -430,5 +431,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
             javaScriptInterface.token = stateChanges.getTo().getUserId();
         }
     }
+
+
 
 }
