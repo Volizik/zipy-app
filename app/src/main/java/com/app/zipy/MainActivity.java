@@ -202,7 +202,7 @@ public class MainActivity extends Activity implements OSSubscriptionObserver {
                             mWebviewPop = null;
                         }
                         url = addParamsToURL(url);
-                        view.loadUrl(url);
+                        webView.loadUrl(url);
                         return false;
                     }
 
